@@ -1,3 +1,3 @@
 ## Description
 
-This nexuscript hook creates a reverse ngrok tunnel, sends the address back to nexuscript as a config change, creates a new http server, and notifies nexuscript when ngrok data is sent to the url
+This nexuscript hook continuously makes a network request on an interval and triggers when the information returned by that network request changes. This could indicate a change in the content of a webpage, an endpoint dying, or a network failure.
