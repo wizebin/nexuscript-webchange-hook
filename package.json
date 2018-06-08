@@ -17,7 +17,7 @@
     "htmlparser2": "^3.9.2",
     "nexusdk": "github:wizebin/nexusdk",
     "node-fetch": "^2.1.2",
-    "objer": "^1.0.25"
+    "objer": "^1.0.26"
   },
   "nexuscript": {
     "type": "hook",

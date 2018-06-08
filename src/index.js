@@ -1,36 +1,43 @@
 import { wrapHook } from 'nexusdk';
 import fetch from 'node-fetch';
-import { getTypeString, keys, deepEq, set, get } from 'objer';
+import { getTypeString, keys, deepEq, set, get, assurePathExists, shallowDiff } from 'objer';
 import { Parser as HtmlParser } from 'htmlparser2';
 
 function parseHtml(text, { white_list }) {
-  const result = [];
+  const result = {};
   let current = [];
   const { attribute_changes, text_changes } = white_list;
   const parser = new HtmlParser({
     onopentag: (name, attributes) => {
-      const nextIndex = get(result, current).length + 1;
-      current = current.concat(['children', nextIndex]);
-      if (attribute_changes) {
-        set(result, current.concat('attributes'), attributes);
-      }
-      set(result, current.concat('tag'), name);
+      const childrenKey = current.concat('children');
+      assurePathExists(result, childrenKey, []);
+      const childrenArray = get(result, childrenKey);
+      childrenArray.push({
+        tag: name,
+        attributes: attribute_changes ? attributes : undefined,
+      });
+      current.push('children');
+      current.push(childrenArray.length - 1);
     },
     ontext: (text) => {
       if (text_changes) {
-        const nextIndex = get(result, current).length + 1;
-        set(result, current.concat('children', nextIndex, 'text'), text);
+        const childrenKey = current.concat('children');
+        assurePathExists(result, childrenKey, []);
+        get(result, childrenKey).push({ text });
       }
     },
     onclosetag: (text) => {
       if (text && text_changes) {
-        const nextIndex = get(result, current).length + 1;
-        set(result, current.concat('children', nextIndex, 'text'), text);
+        const childrenKey = current.concat('children');
+        assurePathExists(result, childrenKey, []);
+        get(result, childrenKey).push({ text });
       }
       current.pop();
       current.pop();
     },
-  });
+  }, { decodeEntities: true });
+  parser.write(text);
+  parser.end();
   return result;
 }
 
@@ -73,11 +80,13 @@ export default wrapHook(async (properties, messages) => {
       const headerResults = results.headers.raw();
 
       const statusChanged = status_changes && currentStatus !== results.status;
-      const bodyChanged = body_changes && deepEq(currentBody, bodyResults);
+      const bodyChanged = body_changes && !deepEq(currentBody, bodyResults);
       const headersChanged = header_changes && !deepEq(currentHeaders, results.headers);
 
+      const bodyChanges = bodyChanged && shallowDiff(currentBody, bodyResults);
+
       if (currentBody !== undefined && (statusChanged || bodyChanged || headersChanged)) {
-        trigger({ url, method, status: results.status, body: bodyResults, headers: headerResults, statusChanged, bodyChanged, headersChanged })
+        trigger({ url, method, status: results.status, body: bodyChanged, headers: headerResults, statusChanged, bodyChanged, headersChanged })
       }
 
       currentBody = bodyResults;
