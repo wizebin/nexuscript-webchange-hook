@@ -86,7 +86,7 @@ export default wrapHook(async (properties, messages) => {
       const bodyChanges = bodyChanged && shallowDiff(currentBody, bodyResults);
 
       if (currentBody !== undefined && (statusChanged || bodyChanged || headersChanged)) {
-        trigger({ url, method, status: results.status, body: bodyChanged, headers: headerResults, statusChanged, bodyChanged, headersChanged })
+        trigger({ url, method, status: results.status, body: bodyChanges, headers: headerResults, statusChanged, bodyChanged, headersChanged })
       }
 
       currentBody = bodyResults;
